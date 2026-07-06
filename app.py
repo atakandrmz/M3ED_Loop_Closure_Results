@@ -18,18 +18,28 @@ ACCELERATED_FEATURES_DIR = os.path.join(BASE_DIR, "accelerated_features")
 NETVLAD_DIR = BASE_DIR
 
 target_folder = os.path.join(NETVLAD_DIR, "spot_forest_hard_data_images_rgb")
-if not os.path.exists(target_folder):
-    print("Local image folder not found. Downloading from Hugging Face Dataset...")
+
+def is_dataset_ready(folder):
+    if not os.path.exists(folder):
+        return False
     try:
-        from huggingface_hub import snapshot_download
-        snapshot_download(
-            repo_id="Umutsoo/SimularityGui-Data",
-            repo_type="dataset",
-            local_dir=NETVLAD_DIR
-        )
-        print("Download complete!")
-    except Exception as e:
-        print(f"Failed to download dataset: {e}")
+        # Check if we have at least 1000 images to confirm it's not a broken/empty folder
+        return len(os.listdir(folder)) > 1000
+    except:
+        return False
+
+if not is_dataset_ready(target_folder):
+    with st.spinner("📦 İlk açılış: Hugging Face Dataset'inden resimler indiriliyor... (Bu işlem yalnızca 1 kez yapılacak ve 1-2 dakika sürebilir)"):
+        try:
+            from huggingface_hub import snapshot_download
+            snapshot_download(
+                repo_id="Umutsoo/SimularityGui-Data",
+                repo_type="dataset",
+                local_dir=NETVLAD_DIR,
+                resume_download=True
+            )
+        except Exception as e:
+            st.error(f"Failed to download dataset: {e}")
 
 sequences = [
     {

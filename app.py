@@ -150,7 +150,7 @@ with col1:
     ))
     
     # Render with Streamlit's on_select
-    event = st.plotly_chart(fig_sim, use_container_width=True, on_select="rerun", selection_mode="points")
+    event = st.plotly_chart(fig_sim, width="stretch", on_select="rerun", selection_mode="points")
 
 with col2:
     st.subheader("Energy Matrix")
@@ -184,7 +184,7 @@ with col2:
         height=500
     )
     
-    st.plotly_chart(fig_energy, use_container_width=True)
+    st.plotly_chart(fig_energy, width="stretch")
 
 # Layout for Images
 st.divider()

@@ -4,7 +4,6 @@ import plotly.graph_objects as pl
 import numpy as np
 from PIL import Image
 import os
-from streamlit_plotly_events import plotly_events
 
 
 st.set_page_config(page_title="Loop Closure Analysis Tool", layout="wide")
@@ -170,8 +169,20 @@ with col1:
         height=500
     )
     
-    # Render with streamlit_plotly_events
-    selected_points = plotly_events(fig_sim, click_event=True, select_event=False, hover_event=False)
+    # Add an invisible scatter plot on top of the Heatmap to capture click events in Streamlit natively!
+    # Using square markers sized appropriately so clicking ANYWHERE in the cell registers the click.
+    X, Y = np.meshgrid(np.arange(S.shape[1]), np.arange(S.shape[0]))
+    fig_sim.add_trace(pl.Scattergl(
+        x=X.flatten(),
+        y=Y.flatten(),
+        mode='markers',
+        marker=dict(size=12, color='rgba(0,0,0,0)', symbol='square'),
+        hoverinfo='skip',
+        showlegend=False
+    ))
+    
+    # Render with Streamlit's native on_select
+    event = st.plotly_chart(fig_sim, width="stretch", on_select="rerun", selection_mode="points")
 
 with col2:
     st.subheader("Energy Matrix")
@@ -180,14 +191,17 @@ with col2:
     fig_energy = pl.Figure(data=[pl.Surface(z=E, colorscale='Viridis')])
     
     # If a point is selected on the heatmap, update session state
-    if len(selected_points) > 0:
-        point = selected_points[0]
-        if st.session_state.last_clicked_point != point:
-            st.session_state.last_clicked_point = point
-            st.session_state.row_val_input = int(point["y"])
-            st.session_state.row_val_slider = int(point["y"])
-            st.session_state.col_val_input = int(point["x"])
-            st.session_state.col_val_slider = int(point["x"])
+    if event and event.selection and "points" in event.selection and len(event.selection["points"]) > 0:
+        point = event.selection["points"][0]
+        clicked_x = int(point["x"])
+        clicked_y = int(point["y"])
+        
+        # Avoid unnecessary state updates to prevent slider jitter
+        if st.session_state.col_val_input != clicked_x or st.session_state.row_val_input != clicked_y:
+            st.session_state.col_val_input = clicked_x
+            st.session_state.col_val_slider = clicked_x
+            st.session_state.row_val_input = clicked_y
+            st.session_state.row_val_slider = clicked_y
             
     selected_row = st.session_state.row_val_input
     selected_col = st.session_state.col_val_input
@@ -225,11 +239,11 @@ if st.session_state.col_val_input >= S.shape[1]:
     st.session_state.col_val_slider = S.shape[1] - 1
 
 with sel_col1:
-    st.number_input("Row", min_value=0, max_value=S.shape[0]-1, key="row_val_input", on_change=sync_row_input)
-    st.slider("Row", min_value=0, max_value=S.shape[0]-1, key="row_val_slider", on_change=sync_row_slider, label_visibility="collapsed")
+    st.number_input("Row (Manuel Giriş)", min_value=0, max_value=S.shape[0]-1, key="row_val_input", on_change=sync_row_input)
+    st.slider("Row (Kaydırıcı)", min_value=0, max_value=S.shape[0]-1, key="row_val_slider", on_change=sync_row_slider, label_visibility="collapsed")
 with sel_col2:
-    st.number_input("Column", min_value=0, max_value=S.shape[1]-1, key="col_val_input", on_change=sync_col_input)
-    st.slider("Column", min_value=0, max_value=S.shape[1]-1, key="col_val_slider", on_change=sync_col_slider, label_visibility="collapsed")
+    st.number_input("Column (Manuel Giriş)", min_value=0, max_value=S.shape[1]-1, key="col_val_input", on_change=sync_col_input)
+    st.slider("Column (Kaydırıcı)", min_value=0, max_value=S.shape[1]-1, key="col_val_slider", on_change=sync_col_slider, label_visibility="collapsed")
 
 # Always use the manual inputs as the source of truth for display
 display_row = st.session_state.row_val_input

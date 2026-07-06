@@ -9,14 +9,12 @@ import os
 st.set_page_config(page_title="Loop Closure Analysis Tool", layout="wide")
 
 # ========================================================================
-# Dataset Extraction (For Hugging Face Deployment)
+# Dataset Configuration (Hugging Face Mount)
 # ========================================================================
-import zipfile
 
-# If we are deployed and the images folder doesn't exist but the zip does, extract it!
-if not os.path.exists("spot_forest_hard_data_images_rgb") and os.path.exists("images.zip"):
-    with zipfile.ZipFile("images.zip", 'r') as zip_ref:
-        zip_ref.extractall(".")
+# If deployed on Hugging Face with a mounted dataset, the data will be in /data.
+# Otherwise, we fallback to the local directory.
+DATASET_MOUNT_PATH = "/data"
 
 # ========================================================================
 # Sequence Definitions
@@ -26,8 +24,11 @@ if not os.path.exists("spot_forest_hard_data_images_rgb") and os.path.exists("im
 # When deploying to HuggingFace, you can move 'accelerated_features' inside 'hf_space' and update these paths.
 BASE_DIR = os.path.dirname(__file__)
 ACCELERATED_FEATURES_DIR = os.path.join(BASE_DIR, "accelerated_features")
-# Default path where you put the images (the user placed them directly in BASE_DIR)
-NETVLAD_DIR = BASE_DIR
+
+if os.path.exists(DATASET_MOUNT_PATH):
+    NETVLAD_DIR = DATASET_MOUNT_PATH
+else:
+    NETVLAD_DIR = BASE_DIR
 
 sequences = [
     {

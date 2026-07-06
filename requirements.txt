@@ -4,3 +4,4 @@ plotly
 Pillow
 numpy
 streamlit-plotly-events
+huggingface_hub

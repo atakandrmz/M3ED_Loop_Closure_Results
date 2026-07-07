@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 import os
 from streamlit_image_comparison import image_comparison
+from streamlit_echarts import st_echarts
 
 
 st.set_page_config(page_title="Loop Closure Analysis Tool", layout="wide")
@@ -188,42 +189,74 @@ with col1:
 with col2:
     st.subheader("Energy Matrix")
     
-    # Plotly Surface for Energy
-    fig_energy = pl.Figure(data=[pl.Surface(z=E, colorscale='Viridis')])
+    # Downsample factor to improve performance in 3D WebGL (max ~100x100 grid)
+    ds = max(1, E.shape[0] // 100)
     
-    # If a point is selected on the heatmap, update session state
-    if event_2d and event_2d.selection and "points" in event_2d.selection and len(event_2d.selection["points"]) > 0:
-        point = event_2d.selection["points"][0]
-        clicked_x = int(point["x"])
-        clicked_y = int(point["y"])
-        
-        # Avoid unnecessary state updates to prevent slider jitter
+    X_e, Y_e = np.meshgrid(np.arange(E.shape[1]), np.arange(E.shape[0]))
+    X_e_ds = X_e[::ds, ::ds]
+    Y_e_ds = Y_e[::ds, ::ds]
+    E_ds = E[::ds, ::ds]
+    
+    data = []
+    for i in range(E_ds.shape[0]):
+        for j in range(E_ds.shape[1]):
+            data.append([int(X_e_ds[i, j]), int(Y_e_ds[i, j]), float(E_ds[i, j])])
+            
+    options = {
+        "tooltip": {},
+        "visualMap": {
+            "show": False,
+            "dimension": 2,
+            "min": float(np.min(E)),
+            "max": float(np.max(E)),
+            "inRange": {"color": ["#440154", "#482878", "#3e4a89", "#31688e", "#26828e", "#1f9e89", "#35b779", "#6ece58", "#b5de2b", "#fde725"]}
+        },
+        "xAxis3D": {"type": "value", "name": "Col"},
+        "yAxis3D": {"type": "value", "name": "Row"},
+        "zAxis3D": {"type": "value", "name": "Energy"},
+        "grid3D": {
+            "viewControl": {"projection": "perspective"},
+            "boxWidth": 100,
+            "boxDepth": 100,
+            "boxHeight": 50,
+        },
+        "series": [{
+            "type": "surface",
+            "wireframe": {"show": False},
+            "data": data
+        }]
+    }
+    
+    selected_row = st.session_state.row_val_input
+    selected_col = st.session_state.col_val_input
+    
+    if selected_col is not None and selected_row is not None:
+        try:
+            energy_val = float(E[selected_row, selected_col])
+            options["series"].append({
+                "type": "scatter3D",
+                "data": [[selected_col, selected_row, energy_val]],
+                "symbolSize": 10,
+                "itemStyle": {"color": "red"}
+            })
+        except IndexError:
+            pass
+
+    events = {
+        "click": "function(params) { return [params.data[0], params.data[1]]; }"
+    }
+    
+    event_3d = st_echarts(options=options, events=events, height="500px", key="echarts_3d")
+    
+    # Update session state if 3D plot is clicked
+    if event_3d and isinstance(event_3d, list) and len(event_3d) == 2:
+        clicked_x = int(event_3d[0])
+        clicked_y = int(event_3d[1])
         if st.session_state.col_val_input != clicked_x or st.session_state.row_val_input != clicked_y:
             st.session_state.col_val_input = clicked_x
             st.session_state.col_val_slider = clicked_x
             st.session_state.row_val_input = clicked_y
             st.session_state.row_val_slider = clicked_y
-            
-    selected_row = st.session_state.row_val_input
-    selected_col = st.session_state.col_val_input
-    
-    if selected_col is not None and selected_row is not None:
-        energy_val = E[selected_row, selected_col]
-        fig_energy.add_trace(pl.Scatter3d(
-            x=[selected_col],
-            y=[selected_row],
-            z=[energy_val],
-            mode='markers',
-            marker=dict(size=8, color='red', symbol='circle'),
-            name='Selected'
-        ))
-        
-    fig_energy.update_layout(
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=500
-    )
-    
-    st.plotly_chart(fig_energy, width="stretch")
 
 # Layout for Images
 st.divider()
@@ -284,3 +317,5 @@ except IndexError:
 with st.expander("🛠️ Debug Logs"):
     st.write("2D Matrix Selection Event:")
     st.json(event_2d.selection if 'event_2d' in locals() and event_2d else {})
+    st.write("3D Matrix Selection Event:")
+    st.json(event_3d if 'event_3d' in locals() and event_3d else {})

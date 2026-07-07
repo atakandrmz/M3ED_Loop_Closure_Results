@@ -191,6 +191,18 @@ with col2:
     # Plotly Surface for Energy
     fig_energy = pl.Figure(data=[pl.Surface(z=E, colorscale='Viridis')])
     
+    # Add an invisible Scatter3d trace to capture click events in Streamlit natively
+    X_3d, Y_3d = np.meshgrid(np.arange(E.shape[1]), np.arange(E.shape[0]))
+    fig_energy.add_trace(pl.Scatter3d(
+        x=X_3d.flatten(),
+        y=Y_3d.flatten(),
+        z=E.flatten(),
+        mode='markers',
+        marker=dict(size=5, color='rgba(0,0,0,0)'),
+        hoverinfo='none',
+        showlegend=False
+    ))
+    
     # If a point is selected on the heatmap, update session state
     if event_2d and event_2d.selection and "points" in event_2d.selection and len(event_2d.selection["points"]) > 0:
         point = event_2d.selection["points"][0]

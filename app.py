@@ -191,18 +191,6 @@ with col2:
     # Plotly Surface for Energy
     fig_energy = pl.Figure(data=[pl.Surface(z=E, colorscale='Viridis')])
     
-    # Add an invisible Scatter3d trace to capture click events in Streamlit natively
-    X_3d, Y_3d = np.meshgrid(np.arange(E.shape[1]), np.arange(E.shape[0]))
-    fig_energy.add_trace(pl.Scatter3d(
-        x=X_3d.flatten(),
-        y=Y_3d.flatten(),
-        z=E.flatten(),
-        mode='markers',
-        marker=dict(size=5, color='rgba(0,0,0,0)'),
-        hoverinfo='none',
-        showlegend=False
-    ))
-    
     # If a point is selected on the heatmap, update session state
     if event_2d and event_2d.selection and "points" in event_2d.selection and len(event_2d.selection["points"]) > 0:
         point = event_2d.selection["points"][0]
@@ -235,20 +223,7 @@ with col2:
         height=500
     )
     
-    event_3d = st.plotly_chart(fig_energy, width="stretch", on_select="rerun", selection_mode="points")
-    
-    # Check 3D selection as well
-    if event_3d and event_3d.selection and "points" in event_3d.selection and len(event_3d.selection["points"]) > 0:
-        point = event_3d.selection["points"][0]
-        # Depending on how Plotly returns 3D surface points, we might need 'x' and 'y'
-        if 'x' in point and 'y' in point:
-            clicked_x = int(point["x"])
-            clicked_y = int(point["y"])
-            if st.session_state.col_val_input != clicked_x or st.session_state.row_val_input != clicked_y:
-                st.session_state.col_val_input = clicked_x
-                st.session_state.col_val_slider = clicked_x
-                st.session_state.row_val_input = clicked_y
-                st.session_state.row_val_slider = clicked_y
+    st.plotly_chart(fig_energy, width="stretch")
 
 # Layout for Images
 st.divider()
@@ -309,5 +284,3 @@ except IndexError:
 with st.expander("🛠️ Debug Logs"):
     st.write("2D Matrix Selection Event:")
     st.json(event_2d.selection if 'event_2d' in locals() and event_2d else {})
-    st.write("3D Matrix Selection Event:")
-    st.json(event_3d.selection if 'event_3d' in locals() and event_3d else {})

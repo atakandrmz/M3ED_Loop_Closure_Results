@@ -275,6 +275,13 @@ try:
             label2=f"Col Frame {frame_col}",
             width=800
         )
+        
+        st.subheader("Individual Frames")
+        img_col1, img_col2 = st.columns(2)
+        with img_col1:
+            st.image(img_row_path, caption=f"Row Frame {frame_row}", use_column_width=True)
+        with img_col2:
+            st.image(img_col_path, caption=f"Col Frame {frame_col}", use_column_width=True)
     else:
         if not os.path.exists(img_row_path):
             st.warning(f"Row Frame {frame_row} not found. (Expected at: {img_row_path})")

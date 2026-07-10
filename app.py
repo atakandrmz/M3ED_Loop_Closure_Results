@@ -245,6 +245,14 @@ with col2:
 # Layout for Images
 st.divider()
 
+image_comparison(
+            img1=img_row_path,
+            img2=img_col_path,
+            label1=f"Row Frame {frame_row}",
+            label2=f"Col Frame {frame_col}",
+            width=800
+)
+
 st.subheader("Frame Selection")
 sel_col1, sel_col2 = st.columns(2)
 
@@ -279,15 +287,8 @@ try:
     img_row_path = os.path.join(selected_seq["imageDir"], f"image_{frame_row:05d}.jpg")
     img_col_path = os.path.join(selected_seq["imageDir"], f"image_{frame_col:05d}.jpg")
     
-    st.subheader("Image Comparison Slider")
     if os.path.exists(img_row_path) and os.path.exists(img_col_path):
-        image_comparison(
-            img1=img_row_path,
-            img2=img_col_path,
-            label1=f"Row Frame {frame_row}",
-            label2=f"Col Frame {frame_col}",
-            width=800
-        )
+        
         
         st.subheader("Individual Frames")
         ind_col1, ind_col2 = st.columns(2)

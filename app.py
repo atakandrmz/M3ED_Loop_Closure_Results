@@ -152,6 +152,25 @@ info_placeholder = st.empty()
 # Layout for Matrices
 col1, col2 = st.columns(2)
 
+sim_val = S[display_row, display_col]
+    energy_val = E[display_row, display_col]
+    
+    frame_row = display_row * 12
+    frame_col = display_col * 12
+    
+    info_placeholder.info(f"**Row:** {display_row} | **Col:** {display_col} | **Similarity:** {sim_val:.1f} | **Energy:** {energy_val:.1f} | **FrameA:** {frame_row} | **FrameB:** {frame_col}")
+    
+    img_row_path = os.path.join(selected_seq["imageDir"], f"image_{frame_row:05d}.jpg")
+    img_col_path = os.path.join(selected_seq["imageDir"], f"image_{frame_col:05d}.jpg")
+
+image_comparison(
+            img1=img_row_path,
+            img2=img_col_path,
+            label1=f"Row Frame {frame_row}",
+            label2=f"Col Frame {frame_col}",
+            width=800
+)
+
 with col1:
     st.subheader("Frame Similarity Matrix")
     
@@ -245,13 +264,7 @@ with col2:
 # Layout for Images
 st.divider()
 
-image_comparison(
-            img1=img_row_path,
-            img2=img_col_path,
-            label1=f"Row Frame {frame_row}",
-            label2=f"Col Frame {frame_col}",
-            width=800
-)
+
 
 st.subheader("Frame Selection")
 sel_col1, sel_col2 = st.columns(2)
@@ -276,16 +289,7 @@ display_row = st.session_state.row_val_input
 display_col = st.session_state.col_val_input
 
 try:
-    sim_val = S[display_row, display_col]
-    energy_val = E[display_row, display_col]
     
-    frame_row = display_row * 12
-    frame_col = display_col * 12
-    
-    info_placeholder.info(f"**Row:** {display_row} | **Col:** {display_col} | **Similarity:** {sim_val:.1f} | **Energy:** {energy_val:.1f} | **FrameA:** {frame_row} | **FrameB:** {frame_col}")
-    
-    img_row_path = os.path.join(selected_seq["imageDir"], f"image_{frame_row:05d}.jpg")
-    img_col_path = os.path.join(selected_seq["imageDir"], f"image_{frame_col:05d}.jpg")
     
     if os.path.exists(img_row_path) and os.path.exists(img_col_path):
         

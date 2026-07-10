@@ -84,7 +84,6 @@ def load_matrices(result_dir):
     
     if os.path.exists(sim_file):
         tmp_s = scipy.io.loadmat(sim_file)
-        # MAT files are dicts, we want the first key that isn't metadata
         keys = [k for k in tmp_s.keys() if not k.startswith('__')]
         if keys:
             S = tmp_s[keys[0]]
@@ -122,49 +121,64 @@ if S is None or E is None:
     st.error(f"Could not load matrices from {selected_seq['resultDir']}.")
     st.stop()
 
-# Initialize session state for sliders and inputs
-if "row_val_input" not in st.session_state:
-    st.session_state.row_val_input = 0
-if "row_val_slider" not in st.session_state:
-    st.session_state.row_val_slider = 0
-if "col_val_input" not in st.session_state:
-    st.session_state.col_val_input = 0
-if "col_val_slider" not in st.session_state:
-    st.session_state.col_val_slider = 0
+# ========================================================================
+# State Management & Callbacks (Fix for StreamlitAPIException)
+# ========================================================================
+if "master_row" not in st.session_state:
+    st.session_state.master_row = 0
+if "master_col" not in st.session_state:
+    st.session_state.master_col = 0
+if "last_sim_sel" not in st.session_state:
+    st.session_state.last_sim_sel = None
+if "current_seq" not in st.session_state:
+    st.session_state.current_seq = selected_seq_name
 
-def sync_row_input():
-    st.session_state.row_val_slider = st.session_state.row_val_input
-def sync_row_slider():
-    st.session_state.row_val_input = st.session_state.row_val_slider
-def sync_col_input():
-    st.session_state.col_val_slider = st.session_state.col_val_input
-def sync_col_slider():
-    st.session_state.col_val_input = st.session_state.col_val_slider
+# Reset values if sequence changed
+if st.session_state.current_seq != selected_seq_name:
+    st.session_state.current_seq = selected_seq_name
+    st.session_state.master_row = 0
+    st.session_state.master_col = 0
+    st.session_state.last_sim_sel = None
 
-# Ensure session state doesn't exceed new sequence bounds
-if st.session_state.row_val_input >= S.shape[0]:
-    st.session_state.row_val_input = S.shape[0] - 1
-    st.session_state.row_val_slider = S.shape[0] - 1
-if st.session_state.col_val_input >= S.shape[1]:
-    st.session_state.col_val_input = S.shape[1] - 1
-    st.session_state.col_val_slider = S.shape[1] - 1
+# Process Matrix Clicks from the PREVIOUS run BEFORE UI is rendered
+if "sim_matrix" in st.session_state:
+    current_sel = st.session_state.sim_matrix.get("selection", {})
+    # Check if the click selection actually changed
+    if current_sel != st.session_state.last_sim_sel:
+        st.session_state.last_sim_sel = current_sel
+        if current_sel and "points" in current_sel and len(current_sel["points"]) > 0:
+            pt = current_sel["points"][0]
+            st.session_state.master_col = int(pt["x"])
+            st.session_state.master_row = int(pt["y"])
+
+# Enforce bounds
+max_row = S.shape[0] - 1
+max_col = S.shape[1] - 1
+st.session_state.master_row = max(0, min(st.session_state.master_row, max_row))
+st.session_state.master_col = max(0, min(st.session_state.master_col, max_col))
+
+# Callbacks to sync manual inputs and sliders with the master state
+def sync_row_num(): st.session_state.master_row = st.session_state.row_num
+def sync_row_sld(): st.session_state.master_row = st.session_state.row_sld
+def sync_col_num(): st.session_state.master_col = st.session_state.col_num
+def sync_col_sld(): st.session_state.master_col = st.session_state.col_sld
 
 # ========================================================================
-# 1. Sliders & Frame Selection (Moved before Graphs)
+# 1. Sliders & Frame Selection
 # ========================================================================
 st.subheader("Frame Selection")
 sel_col1, sel_col2 = st.columns(2)
 
 with sel_col1:
-    st.number_input("Row (Manuel Giriş)", min_value=0, max_value=S.shape[0]-1, key="row_val_input", on_change=sync_row_input)
-    st.slider("Row (Kaydırıcı)", min_value=0, max_value=S.shape[0]-1, key="row_val_slider", on_change=sync_row_slider, label_visibility="collapsed")
+    st.number_input("Row (Manuel Giriş)", min_value=0, max_value=max_row, value=st.session_state.master_row, key="row_num", on_change=sync_row_num)
+    st.slider("Row (Kaydırıcı)", min_value=0, max_value=max_row, value=st.session_state.master_row, key="row_sld", on_change=sync_row_sld, label_visibility="collapsed")
 with sel_col2:
-    st.number_input("Column (Manuel Giriş)", min_value=0, max_value=S.shape[1]-1, key="col_val_input", on_change=sync_col_input)
-    st.slider("Column (Kaydırıcı)", min_value=0, max_value=S.shape[1]-1, key="col_val_slider", on_change=sync_col_slider, label_visibility="collapsed")
+    st.number_input("Column (Manuel Giriş)", min_value=0, max_value=max_col, value=st.session_state.master_col, key="col_num", on_change=sync_col_num)
+    st.slider("Column (Kaydırıcı)", min_value=0, max_value=max_col, value=st.session_state.master_col, key="col_sld", on_change=sync_col_sld, label_visibility="collapsed")
 
-# Always use the manual inputs as the source of truth for display
-display_row = st.session_state.row_val_input
-display_col = st.session_state.col_val_input
+# Pull values to use below
+display_row = st.session_state.master_row
+display_col = st.session_state.master_col
 
 # Calculate associated values
 sim_val = S[display_row, display_col]
@@ -213,27 +227,13 @@ with col1:
         showlegend=False
     ))
     
-    # Render with Streamlit's native on_select
-    event_2d = st.plotly_chart(fig_sim, width="stretch", on_select="rerun", selection_mode="points")
-
-    # If a point is selected on the heatmap, update session state
-    if event_2d and event_2d.selection and "points" in event_2d.selection and len(event_2d.selection["points"]) > 0:
-        point = event_2d.selection["points"][0]
-        clicked_x = int(point["x"])
-        clicked_y = int(point["y"])
-        
-        # Avoid unnecessary state updates to prevent slider jitter
-        if st.session_state.col_val_input != clicked_x or st.session_state.row_val_input != clicked_y:
-            st.session_state.col_val_input = clicked_x
-            st.session_state.col_val_slider = clicked_x
-            st.session_state.row_val_input = clicked_y
-            st.session_state.row_val_slider = clicked_y
-            st.rerun()
+    # Render with Streamlit's native on_select and a unique key
+    st.plotly_chart(fig_sim, width="stretch", on_select="rerun", selection_mode="points", key="sim_matrix")
 
 with col2:
     st.subheader("Energy Matrix")
     
-    # Sıkıştırma (Downsample) 40 bin noktanın çökmesini önlemek için
+    # Downsample to avoid browser crash
     ds = max(1, E.shape[0] // 50)
     
     X_e, Y_e = np.meshgrid(np.arange(E.shape[1]), np.arange(E.shape[0]))
@@ -265,10 +265,10 @@ with col2:
     fig_energy.update_layout(
         margin=dict(l=0, r=0, t=0, b=0),
         height=500,
-        uirevision="constant_3d_view" # Kamera açısının sıfırlanmasını engelle
+        uirevision="constant_3d_view" # Prevent camera reset
     )
     
-    event_3d = st.plotly_chart(fig_energy, width="stretch", on_select="ignore")
+    st.plotly_chart(fig_energy, width="stretch")
 
 
 # ========================================================================
@@ -303,10 +303,3 @@ try:
             
 except Exception as e:
     st.error(f"Error loading images: {e}")
-    
-# Debug Logs
-with st.expander("🛠️ Debug Logs"):
-    st.write("2D Matrix Selection Event:")
-    st.json(event_2d.selection if 'event_2d' in locals() and event_2d else {})
-    st.write("3D Matrix Selection Event:")
-    st.json(event_3d.selection if 'event_3d' in locals() and event_3d else {})

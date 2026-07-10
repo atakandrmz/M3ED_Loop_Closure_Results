@@ -306,9 +306,9 @@ except Exception as e:
     st.error(f"Error loading static images: {e}")
 
 
-========================================================================
-5. LOOP CLOSURE MATCHES
-========================================================================
+#========================================================================
+#5. LOOP CLOSURE MATCHES
+#========================================================================
 st.divider()
 st.subheader("Loop Closure Matches")
 Define the path to the loop closure matches folder based on the selected sequence

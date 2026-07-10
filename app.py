@@ -6,14 +6,11 @@ from PIL import Image
 import os
 from streamlit_image_comparison import image_comparison
 
-
 st.set_page_config(page_title="Loop Closure Analysis Tool", layout="wide")
 
 # ========================================================================
 # Dataset Configuration (Hugging Face Auto-Download)
 # ========================================================================
-import os
-
 BASE_DIR = os.path.dirname(__file__)
 ACCELERATED_FEATURES_DIR = os.path.join(BASE_DIR, "accelerated_features")
 NETVLAD_DIR = BASE_DIR
@@ -111,7 +108,7 @@ def get_image(image_dir, frame_id):
 # ========================================================================
 
 st.title("Loop Closure Analysis Tool")
-st.markdown("Select a sequence below and click on the **Similarity Matrix** to explore loop closures.")
+st.markdown("Select a sequence below, configure frames via sliders, or click on the **Similarity Matrix** to explore loop closures.")
 
 # Dropdown
 selected_seq_name = st.selectbox("Select a sequence", list(seq_dict.keys()))
@@ -134,8 +131,6 @@ if "col_val_input" not in st.session_state:
     st.session_state.col_val_input = 0
 if "col_val_slider" not in st.session_state:
     st.session_state.col_val_slider = 0
-if "last_clicked_point" not in st.session_state:
-    st.session_state.last_clicked_point = None
 
 def sync_row_input():
     st.session_state.row_val_slider = st.session_state.row_val_input
@@ -146,30 +141,48 @@ def sync_col_input():
 def sync_col_slider():
     st.session_state.col_val_input = st.session_state.col_val_slider
 
-# Info Label placeholder
-info_placeholder = st.empty()
+# Ensure session state doesn't exceed new sequence bounds
+if st.session_state.row_val_input >= S.shape[0]:
+    st.session_state.row_val_input = S.shape[0] - 1
+    st.session_state.row_val_slider = S.shape[0] - 1
+if st.session_state.col_val_input >= S.shape[1]:
+    st.session_state.col_val_input = S.shape[1] - 1
+    st.session_state.col_val_slider = S.shape[1] - 1
 
-# Layout for Matrices
-col1, col2 = st.columns(2)
+# ========================================================================
+# 1. Sliders & Frame Selection (Moved before Graphs)
+# ========================================================================
+st.subheader("Frame Selection")
+sel_col1, sel_col2 = st.columns(2)
 
+with sel_col1:
+    st.number_input("Row (Manuel Giriş)", min_value=0, max_value=S.shape[0]-1, key="row_val_input", on_change=sync_row_input)
+    st.slider("Row (Kaydırıcı)", min_value=0, max_value=S.shape[0]-1, key="row_val_slider", on_change=sync_row_slider, label_visibility="collapsed")
+with sel_col2:
+    st.number_input("Column (Manuel Giriş)", min_value=0, max_value=S.shape[1]-1, key="col_val_input", on_change=sync_col_input)
+    st.slider("Column (Kaydırıcı)", min_value=0, max_value=S.shape[1]-1, key="col_val_slider", on_change=sync_col_slider, label_visibility="collapsed")
+
+# Always use the manual inputs as the source of truth for display
+display_row = st.session_state.row_val_input
+display_col = st.session_state.col_val_input
+
+# Calculate associated values
 sim_val = S[display_row, display_col]
-    energy_val = E[display_row, display_col]
-    
-    frame_row = display_row * 12
-    frame_col = display_col * 12
-    
-    info_placeholder.info(f"**Row:** {display_row} | **Col:** {display_col} | **Similarity:** {sim_val:.1f} | **Energy:** {energy_val:.1f} | **FrameA:** {frame_row} | **FrameB:** {frame_col}")
-    
-    img_row_path = os.path.join(selected_seq["imageDir"], f"image_{frame_row:05d}.jpg")
-    img_col_path = os.path.join(selected_seq["imageDir"], f"image_{frame_col:05d}.jpg")
+energy_val = E[display_row, display_col]
+frame_row = display_row * 12
+frame_col = display_col * 12
 
-image_comparison(
-            img1=img_row_path,
-            img2=img_col_path,
-            label1=f"Row Frame {frame_row}",
-            label2=f"Col Frame {frame_col}",
-            width=800
-)
+img_row_path = os.path.join(selected_seq["imageDir"], f"image_{frame_row:05d}.jpg")
+img_col_path = os.path.join(selected_seq["imageDir"], f"image_{frame_col:05d}.jpg")
+
+st.info(f"**Row:** {display_row} | **Col:** {display_col} | **Similarity:** {sim_val:.1f} | **Energy:** {energy_val:.1f} | **FrameA:** {frame_row} | **FrameB:** {frame_col}")
+
+
+# ========================================================================
+# 2. Matrices & Graphs
+# ========================================================================
+st.divider()
+col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Frame Similarity Matrix")
@@ -189,8 +202,7 @@ with col1:
         height=500
     )
     
-    # Add an invisible scatter plot on top of the Heatmap to capture click events in Streamlit natively!
-    # Using square markers sized appropriately so clicking ANYWHERE in the cell registers the click.
+    # Add an invisible scatter plot on top of the Heatmap to capture click events in Streamlit natively
     X, Y = np.meshgrid(np.arange(S.shape[1]), np.arange(S.shape[0]))
     fig_sim.add_trace(pl.Scattergl(
         x=X.flatten(),
@@ -236,16 +248,13 @@ with col2:
         colorscale='Viridis'
     )])
     
-    selected_row = st.session_state.row_val_input
-    selected_col = st.session_state.col_val_input
-    
-    if selected_col is not None and selected_row is not None:
+    if display_col is not None and display_row is not None:
         try:
-            energy_val = float(E[selected_row, selected_col])
+            energy_val_plot = float(E[display_row, display_col])
             fig_energy.add_trace(pl.Scatter3d(
-                x=[selected_col],
-                y=[selected_row],
-                z=[energy_val],
+                x=[display_col],
+                y=[display_row],
+                z=[energy_val_plot],
                 mode='markers',
                 marker=dict(size=8, color='red', symbol='circle'),
                 name='Selected'
@@ -259,40 +268,26 @@ with col2:
         uirevision="constant_3d_view" # Kamera açısının sıfırlanmasını engelle
     )
     
-    st.plotly_chart(fig_energy, width="stretch")
+    event_3d = st.plotly_chart(fig_energy, width="stretch", on_select="ignore")
 
-# Layout for Images
+
+# ========================================================================
+# 3. Image Comparison Display
+# ========================================================================
 st.divider()
 
-
-
-st.subheader("Frame Selection")
-sel_col1, sel_col2 = st.columns(2)
-
-# Ensure session state doesn't exceed new sequence bounds
-if st.session_state.row_val_input >= S.shape[0]:
-    st.session_state.row_val_input = S.shape[0] - 1
-    st.session_state.row_val_slider = S.shape[0] - 1
-if st.session_state.col_val_input >= S.shape[1]:
-    st.session_state.col_val_input = S.shape[1] - 1
-    st.session_state.col_val_slider = S.shape[1] - 1
-
-with sel_col1:
-    st.number_input("Row (Manuel Giriş)", min_value=0, max_value=S.shape[0]-1, key="row_val_input", on_change=sync_row_input)
-    st.slider("Row (Kaydırıcı)", min_value=0, max_value=S.shape[0]-1, key="row_val_slider", on_change=sync_row_slider, label_visibility="collapsed")
-with sel_col2:
-    st.number_input("Column (Manuel Giriş)", min_value=0, max_value=S.shape[1]-1, key="col_val_input", on_change=sync_col_input)
-    st.slider("Column (Kaydırıcı)", min_value=0, max_value=S.shape[1]-1, key="col_val_slider", on_change=sync_col_slider, label_visibility="collapsed")
-
-# Always use the manual inputs as the source of truth for display
-display_row = st.session_state.row_val_input
-display_col = st.session_state.col_val_input
-
 try:
-    
-    
     if os.path.exists(img_row_path) and os.path.exists(img_col_path):
         
+        st.subheader("Frame Comparison")
+        # Ensure image comparison fits layout
+        image_comparison(
+            img1=img_row_path,
+            img2=img_col_path,
+            label1=f"Row Frame {frame_row}",
+            label2=f"Col Frame {frame_col}",
+            width=800
+        )
         
         st.subheader("Individual Frames")
         ind_col1, ind_col2 = st.columns(2)
@@ -306,12 +301,12 @@ try:
         if not os.path.exists(img_col_path):
             st.warning(f"Column Frame {frame_col} not found. (Expected at: {img_col_path})")
             
-except IndexError:
-    info_placeholder.error("Selected point is out of bounds.")
+except Exception as e:
+    st.error(f"Error loading images: {e}")
     
 # Debug Logs
 with st.expander("🛠️ Debug Logs"):
     st.write("2D Matrix Selection Event:")
     st.json(event_2d.selection if 'event_2d' in locals() and event_2d else {})
     st.write("3D Matrix Selection Event:")
-    st.json(event_3d if 'event_3d' in locals() and event_3d else {})
+    st.json(event_3d.selection if 'event_3d' in locals() and event_3d else {})

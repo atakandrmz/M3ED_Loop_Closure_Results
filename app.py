@@ -305,32 +305,35 @@ try:
 except Exception as e:
     st.error(f"Error loading static images: {e}")
 
-
-#========================================================================
-#5. LOOP CLOSURE MATCHES
-#========================================================================
 st.divider()
 st.subheader("Loop Closure Matches")
-#Define the path to the loop closure matches folder based on the selected sequence
+
+# Define the path to the loop closure matches folder based on the selected sequence
 matches_dir = os.path.join(selected_seq["resultDir"], "loop_closure_matches")
+
 if os.path.exists(matches_dir):
-# Get all image files in the directory and sort them
-valid_exts = ('.jpg', '.jpeg', '.png')
-match_images = sorted([f for f in os.listdir(matches_dir) if f.lower().endswith(valid_exts)])
-if match_images:
-# Loop through the images in steps of 2 for the 2-column layout
-for i in range(0, len(match_images), 2):
-cols = st.columns(2)
-# Place the first image in the left column
-with cols[0]:
-img_path1 = os.path.join(matches_dir, match_images[i])
-st.image(img_path1, caption=match_images[i], use_container_width=True)
-# Place the second image in the right column (if it exists)
-with cols[1]:
-if i + 1 < len(match_images):
-img_path2 = os.path.join(matches_dir, match_images[i + 1])
-st.image(img_path2, caption=match_images[i + 1], use_container_width=True)
+    # Get all image files in the directory and sort them
+    valid_exts = ('.jpg', '.jpeg', '.png')
+    match_images = sorted([f for f in os.listdir(matches_dir) if f.lower().endswith(valid_exts)])
+    
+    if match_images:
+        # Loop through the images in steps of 2 for the 2-column layout
+        for i in range(0, len(match_images), 2):
+            cols = st.columns(2)
+            
+            # Place the first image in the left column
+            with cols[0]:
+                img_path1 = os.path.join(matches_dir, match_images[i])
+                st.image(img_path1, caption=match_images[i], use_container_width=True)
+            
+            # Place the second image in the right column (if it exists)
+            with cols[1]:
+                if i + 1 < len(match_images):
+                    img_path2 = os.path.join(matches_dir, match_images[i + 1])
+                    st.image(img_path2, caption=match_images[i + 1], use_container_width=True)
+    else:
+        st.info("No images found in the loop_closure_matches folder.")
 else:
-st.info("No images found in the loop_closure_matches folder.")
-else:
-st.info("No loop_closure_matches folder found for this sequence.")
+    st.info("No loop_closure_matches folder found for this sequence.")
+
+

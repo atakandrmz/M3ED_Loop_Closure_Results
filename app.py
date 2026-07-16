@@ -245,6 +245,32 @@ with col1:
         colorscale='Viridis',
         hoverongaps=False
     ))
+
+    # Add red marker showing the current selection
+    fig_sim.add_trace(pl.Scatter(
+        x=[display_col],
+        y=[display_row],
+        mode="markers",
+        marker=dict(
+            color="red",
+            size=12,
+            symbol="circle",
+            line=dict(color="white", width=2)
+        ),
+        name="Selected Frame",
+        showlegend=False,
+        hoverinfo="skip"
+    ))
+    # Invisible scatter plot to capture Streamlit clicks
+    X, Y = np.meshgrid(np.arange(S.shape[1]), np.arange(S.shape[0]))
+    fig_sim.add_trace(pl.Scattergl(
+        x=X.flatten(),
+        y=Y.flatten(),
+        mode='markers',
+        marker=dict(size=12, color='rgba(0,0,0,0)', symbol='square'),
+        hoverinfo='none',
+        showlegend=False
+    ))
     
     # Update layout to match MATLAB's `axis image`
     fig_sim.update_layout(

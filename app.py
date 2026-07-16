@@ -177,6 +177,7 @@ frame_col = display_col * 12
 # 1. IMAGE COMPARISON SLIDER 
 # ========================================================================
 st.divider()
+with col1:
 st.subheader("Frame Comparison")
 
 # Build Paths
@@ -198,7 +199,8 @@ if img_row_obj and img_col_obj:
     )
 else:
     st.warning("Frame images could not be loaded or are missing from the dataset.")
-
+with col2:
+st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ") 
 # ========================================================================
 # 2. FRAME SELECTION CONTROLS
 # ========================================================================

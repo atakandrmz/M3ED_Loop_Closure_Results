@@ -17,29 +17,7 @@ BASE_DIR = os.path.dirname(__file__)
 ACCELERATED_FEATURES_DIR = os.path.join(BASE_DIR, "accelerated_features")
 NETVLAD_DIR = BASE_DIR
 
-target_folder = os.path.join(NETVLAD_DIR, "spot_forest_hard_data_images_rgb")
-
-def is_dataset_ready(folder):
-    if not os.path.exists(folder):
-        return False
-    try:
-        # Check if we have at least 1000 images to confirm it's not a broken/empty folder
-        return len(os.listdir(folder)) > 1000
-    except:
-        return False
-
-if not is_dataset_ready(target_folder):
-    with st.spinner("📦 İlk açılış: Hugging Face Dataset'inden resimler indiriliyor... (Bu işlem yalnızca 1 kez yapılacak ve 1-2 dakika sürebilir)"):
-        try:
-            from huggingface_hub import snapshot_download
-            snapshot_download(
-                repo_id="Umutsoo/SimularityGui-Data",
-                repo_type="dataset",
-                local_dir=NETVLAD_DIR,
-                resume_download=True
-            )
-        except Exception as e:
-            st.error(f"Failed to download dataset: {e}")
+# Zero-Load Architecture: We no longer download the dataset locally.
 
 sequences = [
     {
@@ -107,29 +85,24 @@ def fetch_image_bytes(url):
 
 def resolve_image(path, is_dataset=False):
     """
-    Solves the 'PIL.UnidentifiedImageError' by checking if a file is an LFS/Xet pointer.
-    If it is a pointer file, it automatically downloads the real image from the HF URL.
+    Zero-Load Architecture: Fetch image directly from HF URL.
     """
-    if not os.path.exists(path):
-        return None
+    rel_path = os.path.relpath(path, BASE_DIR).replace("\\", "/")
+    if is_dataset:
+        url = f"https://huggingface.co/datasets/Umutsoo/SimularityGui-Data/resolve/main/{rel_path}"
+    else:
+        url = f"https://huggingface.co/spaces/Umutsoo/SimularityGui/resolve/main/{rel_path}"
     try:
-        # Check if it's a valid local image binary
-        with Image.open(path) as img:
-            img.verify()
-        return Image.open(path)
-    except Exception:
-        # It's an LFS/Xet pointer file! Fetch the real binary from the HuggingFace URL
-        rel_path = os.path.relpath(path, BASE_DIR).replace("\\", "/")
-        if is_dataset:
-            url = f"https://huggingface.co/datasets/Umutsoo/SimularityGui-Data/resolve/main/{rel_path}"
-        else:
-            url = f"https://huggingface.co/spaces/Umutsoo/SimularityGui/resolve/main/{rel_path}"
-        try:
-            img_bytes = fetch_image_bytes(url)
-            return Image.open(BytesIO(img_bytes))
-        except Exception as e:
-            print(f"Error fetching {url}: {e}")
-            return None
+        img_bytes = fetch_image_bytes(url)
+        return Image.open(BytesIO(img_bytes))
+    except Exception as e:
+        # Fallback to local
+        if os.path.exists(path):
+            try:
+                return Image.open(path)
+            except Exception:
+                pass
+        return None
 
 # ========================================================================
 # Main App & State Initialization

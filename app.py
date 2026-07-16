@@ -179,6 +179,9 @@ frame_col = display_col * 12
 st.divider()
 comp_col1, comp_col2 = st.columns(2)
 
+with comp_col2:
+    st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
 with comp_col1:
     st.subheader("Frame Comparison")
 
@@ -201,9 +204,6 @@ with comp_col1:
         )
     else:
         st.warning("Frame images could not be loaded or are missing from the dataset.")
-
-with comp_col2:
-    st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 # ========================================================================
 # 2. FRAME SELECTION CONTROLS
 # ========================================================================

@@ -15,7 +15,7 @@ st.set_page_config(page_title="Loop Closure Analysis Tool", layout="wide")
 # ========================================================================
 BASE_DIR = os.path.dirname(__file__)
 ACCELERATED_FEATURES_DIR = os.path.join(BASE_DIR, "accelerated_features")
-ACCELERATED_FEATURES_DIR2 = os.path.join("https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/tree/main/")
+
 
 NETVLAD_DIR = BASE_DIR
 
@@ -32,7 +32,6 @@ sequences = [
     {
         "name": "spot_indoor_building_loop_data_images_rgb",
         "resultDir": os.path.join(ACCELERATED_FEATURES_DIR, "realtime_results_v2_spot_indoor_building_loop_data_images_rgb"),
-        "LCDir": os.path.join(ACCELERATED_FEATURES_DIR2, "realtime_results_v2_spot_indoor_building_loop_data_images_rgb"),
         "imageDir": os.path.join(NETVLAD_DIR, "spot_indoor_building_loop_data_images_rgb"),
         "video": "https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/spot_indoor_building_loop/spot_indoor_building_loop_rgb.mp4"
     },
@@ -106,14 +105,15 @@ def resolve_image(path, is_dataset=False):
     # 2. Fallback to HuggingFace
     rel_path = os.path.relpath(path, BASE_DIR).replace("\\", "/")
     
-    # Strip accelerated_features/ because HF dataset root contains its children
-    if rel_path.startswith("accelerated_features/"):
-        rel_path = rel_path.replace("accelerated_features/", "", 1)
+    if is_dataset:
+        repo = "M3ED_frames"
+    else:
+        repo = "M3ED_loop_closure_results"
+        # Strip accelerated_features/ because HF dataset root contains its children
+        if rel_path.startswith("accelerated_features/"):
+            rel_path = rel_path.replace("accelerated_features/", "", 1)
 
-    url = (
-        "https://huggingface.co/datasets/e230450/M3ED_frames/resolve/main/"
-        f"{rel_path}"
-    )
+    url = f"https://huggingface.co/datasets/e230450/{repo}/resolve/main/{rel_path}"
 
     try:
         try:
@@ -121,8 +121,8 @@ def resolve_image(path, is_dataset=False):
         except Exception:
             img_bytes = None
 
-        if img_bytes is None and url.lower().endswith(".png"):
-            url_png = url[:-4] + ".png"
+        if img_bytes is None and url.lower().endswith((".jpg", ".jpeg")):
+            url_png = url.rsplit(".", 1)[0] + ".png"
             try:
                 img_bytes = fetch_image_bytes(url_png)
             except Exception:
@@ -382,11 +382,9 @@ st.divider()
 st.subheader("Loop Closure Matches")
 
 # Define the path to the loop closure matches folder based on the selected sequence
-matches_dir = os.path.join(selected_seq["LCDir"], "loop_closure_matches")
-#https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/blob/main/realtime_results_v2_spot_indoor_building_loop_data_images_rgb/loop_closure_matches/LC_105_185.png
-st.info(matches_dir)
+matches_dir = os.path.join(selected_seq["resultDir"], "loop_closure_matches")
 
-if True:
+if os.path.exists(matches_dir):
     # Get all image files in the directory and sort them
     valid_exts = ('.jpg', '.jpeg', '.png')
     match_images = sorted([f for f in os.listdir(matches_dir) if f.lower().endswith(valid_exts)])

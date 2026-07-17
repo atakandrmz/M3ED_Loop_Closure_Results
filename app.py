@@ -113,10 +113,17 @@ def resolve_image(path, is_dataset=False):
     )
 
     try:
-        img_bytes = fetch_image_bytes(url)
+        try:
+            img_bytes = fetch_image_bytes(url)
+        except Exception:
+            img_bytes = None
+
         if img_bytes is None and url.lower().endswith(".jpg"):
             url_png = url[:-4] + ".png"
-            img_bytes = fetch_image_bytes(url_png)
+            try:
+                img_bytes = fetch_image_bytes(url_png)
+            except Exception:
+                img_bytes = None
             
         if img_bytes:
             return Image.open(BytesIO(img_bytes))

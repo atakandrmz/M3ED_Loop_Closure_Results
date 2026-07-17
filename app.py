@@ -384,7 +384,7 @@ st.subheader("Loop Closure Matches")
 # Define the path to the loop closure matches folder based on the selected sequence
 matches_dir = os.path.join(selected_seq["LCDir"], "loop_closure_matches")
 #https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/blob/main/realtime_results_v2_spot_indoor_building_loop_data_images_rgb/loop_closure_matches/LC_105_185.png
-
+st.info(matches_dir)
 
 if os.path.exists(matches_dir):
     # Get all image files in the directory and sort them

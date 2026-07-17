@@ -107,7 +107,7 @@ def resolve_image(path, is_dataset=False):
         rel_path = rel_path.replace("accelerated_features/", "", 1)
 
     url = (
-        "https://huggingface.co/datasets/e230450/M3ED_frames/blob/main/"
+        "https://huggingface.co/datasets/e230450/M3ED_frames/resolve/main/"
         f"{rel_path}"
     )
 

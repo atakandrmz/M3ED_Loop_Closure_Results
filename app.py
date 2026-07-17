@@ -15,13 +15,13 @@ st.set_page_config(page_title="Loop Closure Analysis Tool", layout="wide")
 # ========================================================================
 BASE_DIR = os.path.dirname(__file__)
 ACCELERATED_FEATURES_DIR = os.path.join(BASE_DIR, "accelerated_features")
-ACCELERATED_FEATURES_DIR2 = os.path.join("https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/tree/main/")
+ACCELERATED_FEATURES_DIR2 = os.path.join("https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/blob/main/")
 
 NETVLAD_DIR = BASE_DIR
 
 # Zero-Load Architecture: We no longer download the dataset locally.
 #https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/tree/main/realtime_results_v2_spot_forest_hard_data_images_rgb
-
+#https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/resolve/main/realtime_results_v2_spot_indoor_building_loop_data_images_rgb/loop_closure_matches/LC_105_185.png
 sequences = [
     {
         "name": "spot_forest_hard_data_images_rgb",
@@ -32,6 +32,7 @@ sequences = [
     {
         "name": "spot_indoor_building_loop_data_images_rgb",
         "resultDir": os.path.join(ACCELERATED_FEATURES_DIR, "realtime_results_v2_spot_indoor_building_loop_data_images_rgb"),
+        "LCDir": os.path.join(ACCELERATED_FEATURES_DIR2, "realtime_results_v2_spot_indoor_building_loop_data_images_rgb"),
         "imageDir": os.path.join(NETVLAD_DIR, "spot_indoor_building_loop_data_images_rgb"),
         "video": "https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/spot_indoor_building_loop/spot_indoor_building_loop_rgb.mp4"
     },
@@ -381,8 +382,8 @@ st.divider()
 st.subheader("Loop Closure Matches")
 
 # Define the path to the loop closure matches folder based on the selected sequence
-matches_dir = os.path.join(selected_seq["resultDir"], "loop_closure_matches")
-
+matches_dir = os.path.join("realtime_results_v2_", selected_seq["LCDir"], "loop_closure_matches")
+#https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/blob/main/realtime_results_v2_spot_indoor_building_loop_data_images_rgb/loop_closure_matches/LC_105_185.png
 
 
 if os.path.exists(matches_dir):

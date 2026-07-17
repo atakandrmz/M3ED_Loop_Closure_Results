@@ -117,7 +117,7 @@ def resolve_image(path, is_dataset=False):
         except Exception:
             img_bytes = None
 
-        if img_bytes is None and url.lower().endswith(".jpg"):
+        if img_bytes is None and url.lower().endswith(".png"):
             url_png = url[:-4] + ".png"
             try:
                 img_bytes = fetch_image_bytes(url_png)

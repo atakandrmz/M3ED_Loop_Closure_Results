@@ -114,7 +114,14 @@ def resolve_image(path, is_dataset=False):
 
     try:
         img_bytes = fetch_image_bytes(url)
-        return Image.open(BytesIO(img_bytes))
+        if img_bytes is None and url.lower().endswith(".jpg"):
+            url_png = url[:-4] + ".png"
+            img_bytes = fetch_image_bytes(url_png)
+            
+        if img_bytes:
+            return Image.open(BytesIO(img_bytes))
+        else:
+            raise Exception("Image not found")
     except Exception as e:
         st.error(f"Could not load image from HF: {url}")
         return None

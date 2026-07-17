@@ -108,7 +108,7 @@ def resolve_image(path, is_dataset=False):
 
     url = (
         "https://huggingface.co/datasets/"
-        "e230450/M3ED_frames/tree/main/"
+        "e230450/M3ED_frames/blob/main/"
         f"{rel_path}"
     )
 

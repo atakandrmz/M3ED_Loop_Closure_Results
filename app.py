@@ -141,7 +141,28 @@ def resolve_image(path, is_dataset=False):
 # Main App & State Initialization
 # ========================================================================
 
-st.title("Loop Closure Analysis Tool")
+# Inject Custom CSS for Academic Formatting
+st.markdown("""
+<style>
+    html, body, [class*="css"] {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    .main-title {
+        text-align: center;
+        font-size: 3rem !important;
+        font-weight: bold;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("<div class='main-title'>Loop Closure Analysis Tool</div>", unsafe_allow_html=True)
 st.markdown("Use the **Image Comparison Slider**, manually configure frames, or click the **Similarity Matrix** to explore loop closures.")
 
 # Dropdown
@@ -154,7 +175,7 @@ selected_seq = seq_dict[selected_seq_name]
 st.divider()
 
 # 1. Full-width Video
-st.subheader("Loop closure gui")
+st.header("Loop Closure GUI")
 demo_video_url = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 st.video(demo_video_url)
 
@@ -182,7 +203,7 @@ except Exception as e:
     st.warning(f"Could not load dashboard_summary.csv: {e}")
 
 st.divider()
-st.subheader("Image Retrival")
+st.header("Image Retrival")
 
 # Load Data
 with st.spinner("Loading matrices..."):
@@ -417,7 +438,7 @@ if img_row_obj and img_col_obj:
 # 5. LOOP CLOSURE MATCHES
 # ========================================================================
 st.divider()
-st.subheader("Retrival Results")
+st.header("Retrival Results")
 
 # Define the path to the loop closure matches folder based on the selected sequence
 matches_dir = os.path.join(selected_seq["resultDir"], "loop_closure_matches")
@@ -460,7 +481,7 @@ else:
 # 6. GEOMETRY CHECK
 # ========================================================================
 st.divider()
-st.subheader("Geometry Check")
+st.header("Geometry Check")
 
 st.markdown("#### GUI Output")
 st.image("https://via.placeholder.com/800x600.png?text=GUI+Output+Placeholder", use_container_width=True)

@@ -156,8 +156,30 @@ st.markdown("""
         font-weight: bold;
         margin-top: 10px;
         margin-bottom: 20px;
-        border-bottom: 2px solid #ccc;
+        border-bottom: 2px solid #000;
         padding-bottom: 10px;
+    }
+    /* IEEE Style Tables */
+    [data-testid="stDataFrame"] table {
+        border-top: 2px solid black !important;
+        border-bottom: 2px solid black !important;
+        border-collapse: collapse !important;
+    }
+    [data-testid="stDataFrame"] th {
+        border-bottom: 1px solid black !important;
+        border-top: none !important;
+        background-color: transparent !important;
+        font-weight: bold !important;
+    }
+    [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
+        border-left: none !important;
+        border-right: none !important;
+        background-color: white !important;
+    }
+    /* Divider Customization */
+    hr {
+        border-top: 1px solid black !important;
+        margin: 1.5em 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -266,7 +288,6 @@ frame_col = display_col * 12
 # ========================================================================
 # 1. IMAGE COMPARISON SLIDER 
 # ========================================================================
-st.divider()
 comp_col1, comp_col2 = st.columns(2)
 
 with comp_col2:
@@ -428,9 +449,9 @@ st.subheader("Individual Frames")
 if img_row_obj and img_col_obj:
     ind_col1, ind_col2 = st.columns(2)
     with ind_col1:
-        st.image(img_row_obj, caption=f"Row Frame {frame_row}")
+        st.image(img_row_obj, caption=f"Fig. A: Row Frame {frame_row}")
     with ind_col2:
-        st.image(img_col_obj, caption=f"Col Frame {frame_col}")
+        st.image(img_col_obj, caption=f"Fig. B: Col Frame {frame_col}")
         
 
 
@@ -459,7 +480,7 @@ if os.path.exists(matches_dir):
 
                 img1_obj = resolve_image(img_path1, is_dataset=False)
                 if img1_obj:
-                    st.image(img1_obj, caption=match_images[i], use_container_width=True)
+                    st.image(img1_obj, caption=f"Fig: {match_images[i]}", use_container_width=True)
                 else:
                     st.error(f"Could not load {match_images[i]}")
             
@@ -469,7 +490,7 @@ if os.path.exists(matches_dir):
                     img_path2 = os.path.join(matches_dir, match_images[i + 1])
                     img2_obj = resolve_image(img_path2, is_dataset=False)
                     if img2_obj:
-                        st.image(img2_obj, caption=match_images[i + 1], use_container_width=True)
+                        st.image(img2_obj, caption=f"Fig: {match_images[i + 1]}", use_container_width=True)
                     else:
                         st.error(f"Could not load {match_images[i+1]}")
     else:
@@ -484,7 +505,7 @@ st.divider()
 st.header("Geometry Check")
 
 st.markdown("#### GUI Output")
-st.image("https://via.placeholder.com/800x600.png?text=GUI+Output+Placeholder", use_container_width=True)
+st.image("https://via.placeholder.com/800x600.png?text=GUI+Output+Placeholder", use_container_width=True, caption="Fig: GUI Output Preview")
 
 st.markdown("#### Overall Summary")
-st.image("https://via.placeholder.com/800x600.png?text=Overall+Summary+Placeholder", use_container_width=True)
+st.image("https://via.placeholder.com/800x600.png?text=Overall+Summary+Placeholder", use_container_width=True, caption="Fig: Overall Summary Preview")

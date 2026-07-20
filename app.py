@@ -16,49 +16,25 @@ st.set_page_config(page_title="Loop Closure Analysis Tool", layout="wide")
 # Dataset Configuration (Hugging Face Auto-Download)
 # ========================================================================
 BASE_DIR = os.path.dirname(__file__)
-ACCELERATED_FEATURES_DIR = os.path.join(BASE_DIR, "accelerated_features")
-
-
+RESULTS_DIR = os.path.join(BASE_DIR, "Results")
 NETVLAD_DIR = BASE_DIR
 
-# Zero-Load Architecture: We no longer download the dataset locally.
-#https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/tree/main/realtime_results_v2_spot_forest_hard_data_images_rgb
-#https://huggingface.co/datasets/e230450/M3ED_loop_closure_results/resolve/main/realtime_results_v2_spot_indoor_building_loop_data_images_rgb/loop_closure_matches/LC_105_185.png
-sequences = [
-    {
-        "name": "spot_forest_hard_data_images_rgb",
-        "resultDir": os.path.join(ACCELERATED_FEATURES_DIR, "realtime_results_v2_spot_forest_hard_data_images_rgb"),
-        "imageDir": os.path.join(NETVLAD_DIR, "spot_forest_hard_data_images_rgb"),
-        "video": "https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/spot_forest_hard/spot_forest_hard_rgb.mp4"
-    },
-    {
-        "name": "spot_indoor_building_loop_data_images_rgb",
-        "resultDir": os.path.join(ACCELERATED_FEATURES_DIR, "realtime_results_v2_spot_indoor_building_loop_data_images_rgb"),
-        "imageDir": os.path.join(NETVLAD_DIR, "spot_indoor_building_loop_data_images_rgb"),
-        "video": "https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/spot_indoor_building_loop/spot_indoor_building_loop_rgb.mp4"
-    },
-    {
-        "name": "spot_indoor_obstacles_data_images_rgb",
-        "resultDir": os.path.join(ACCELERATED_FEATURES_DIR, "realtime_results_v2_spot_indoor_obstacles_data_images_rgb"),
-        "imageDir": os.path.join(NETVLAD_DIR, "spot_indoor_obstacles_data_images_rgb"),
-        "video": "https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/spot_indoor_obstacles/spot_indoor_obstacles_rgb.mp4"
-    },
-    {
-        "name": "spot_outdoor_day_skatepark_1_data_images_rgb",
-        "resultDir": os.path.join(ACCELERATED_FEATURES_DIR, "realtime_results_v2_spot_outdoor_day_skatepark_1_data_images_rgb"),
-        "imageDir": os.path.join(NETVLAD_DIR, "spot_outdoor_day_skatepark_1_data_images_rgb"),
-        "video": "https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/spot_outdoor_day_skatepark_1/spot_outdoor_day_skatepark_1_rgb.mp4"
-    },
-    {
-        "name": "spot_outdoor_day_skatepark_2_data_images_rgb",
-        "resultDir": os.path.join(ACCELERATED_FEATURES_DIR, "realtime_results_v2_spot_outdoor_day_skatepark_2_data_images_rgb"),
-        "imageDir": os.path.join(NETVLAD_DIR, "spot_outdoor_day_skatepark_2_data_images_rgb"),
-        "video": "https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/spot_outdoor_day_skatepark_2/spot_outdoor_day_skatepark_2_rgb.mp4"
+def get_sequence_info(folder_name, version_dir):
+    base_name = folder_name
+    if base_name.startswith("realtime_results_v2_"):
+        base_name = base_name.replace("realtime_results_v2_", "")
+    if base_name.endswith("_data_images_rgb"):
+        base_name = base_name.replace("_data_images_rgb", "")
+    
+    image_dir = os.path.join(NETVLAD_DIR, f"{base_name}_data_images_rgb")
+    video_url = f"https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/{base_name}/{base_name}_rgb.mp4"
+    
+    return {
+        "name": folder_name,
+        "resultDir": os.path.join(version_dir, folder_name),
+        "imageDir": image_dir,
+        "video": video_url
     }
-]
-
-# Create a mapping for easy lookup
-seq_dict = {seq["name"]: seq for seq in sequences}
 
 # ========================================================================
 # Helper Functions
@@ -111,9 +87,9 @@ def resolve_image(path, is_dataset=False):
         repo = "M3ED_frames"
     else:
         repo = "M3ED_loop_closure_results"
-        # Strip accelerated_features/ because HF dataset root contains its children
-        if rel_path.startswith("accelerated_features/"):
-            rel_path = rel_path.replace("accelerated_features/", "", 1)
+        # Strip Results/v1/ because HF dataset root contains its children
+        if rel_path.startswith("Results/v1/"):
+            rel_path = rel_path.replace("Results/v1/", "", 1)
 
     url = f"https://huggingface.co/datasets/e230450/{repo}/resolve/main/{rel_path}"
 
@@ -222,8 +198,33 @@ st.markdown("""
 st.markdown("<div class='main-title'>Loop Closure Analysis Tool</div>", unsafe_allow_html=True)
 st.markdown("Use the **Image Comparison Slider**, manually configure frames, or click the **Similarity Matrix** to explore loop closures.")
 
-# Dropdown
-selected_seq_name = st.selectbox("Select a sequence", list(seq_dict.keys()))
+if not os.path.exists(RESULTS_DIR):
+    st.error(f"Results directory not found at {RESULTS_DIR}")
+    st.stop()
+
+# Dynamic version selection
+versions = sorted([d for d in os.listdir(RESULTS_DIR) if os.path.isdir(os.path.join(RESULTS_DIR, d))])
+if not versions:
+    st.error("No versions found in Results directory.")
+    st.stop()
+
+# Dropdowns side-by-side
+sel_col1, sel_col2 = st.columns([1, 3])
+with sel_col1:
+    selected_version = st.selectbox("Select Version", versions)
+
+version_dir = os.path.join(RESULTS_DIR, selected_version)
+seq_names = sorted([d for d in os.listdir(version_dir) if os.path.isdir(os.path.join(version_dir, d))])
+
+if not seq_names:
+    st.warning(f"No sequences found in {selected_version}")
+    st.stop()
+
+seq_dict = {name: get_sequence_info(name, version_dir) for name in seq_names}
+
+with sel_col2:
+    selected_seq_name = st.selectbox("Select a sequence", list(seq_dict.keys()))
+
 selected_seq = seq_dict[selected_seq_name]
 
 # ========================================================================

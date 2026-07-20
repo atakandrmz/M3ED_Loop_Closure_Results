@@ -26,6 +26,9 @@ def get_sequence_info(folder_name, version_dir):
     if base_name.endswith("_data_images_rgb"):
         base_name = base_name.replace("_data_images_rgb", "")
     
+    if base_name == "indoor_obstacles":
+        base_name = "spot_indoor_obstacles"
+
     image_dir = os.path.join(NETVLAD_DIR, f"{base_name}_data_images_rgb")
     video_url = f"https://m3ed-dist.s3.us-west-2.amazonaws.com/processed/{base_name}/{base_name}_rgb.mp4"
     
@@ -113,41 +116,6 @@ def resolve_image(path, is_dataset=False):
     except Exception as e:
         st.error(f"Could not load image from HF: {url}")
         return None
-def render_dynamic_gallery(folder_path):
-    import json
-    if not os.path.exists(folder_path):
-        st.info(f"Directory {folder_path} does not exist.")
-        return
-
-    # Check for config
-    config_path = os.path.join(folder_path, "config.json")
-    num_cols = 2 # default
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                cfg = json.load(f)
-                num_cols = cfg.get("columns", 2)
-        except Exception as e:
-            st.error(f"Error reading config.json: {e}")
-
-    valid_exts = ('.jpg', '.jpeg', '.png')
-    images = sorted([f for f in os.listdir(folder_path) if f.lower().endswith(valid_exts)])
-
-    if not images:
-        st.info(f"No images found in {folder_path}.")
-        return
-
-    # Render in grid
-    cols = st.columns(num_cols)
-    for i, img_name in enumerate(images):
-        col = cols[i % num_cols]
-        img_path = os.path.join(folder_path, img_name)
-        img_obj = resolve_image(img_path, is_dataset=False)
-        if img_obj:
-            col.image(img_obj, caption=f"Fig: {img_name}", use_container_width=True)
-        else:
-            col.error(f"Could not load {img_name}")
-
 # ========================================================================
 # Main App & State Initialization
 # ========================================================================
@@ -541,7 +509,34 @@ st.divider()
 st.header("Geometry Check")
 
 st.markdown("#### GUI Output")
-render_dynamic_gallery("output_images")
+gui_images = sorted([f for f in os.listdir(selected_seq["resultDir"]) if f.startswith("realtime_dashboard_") and f.endswith(".png")])
+if gui_images:
+    for img_file in gui_images:
+        img_path = os.path.join(selected_seq["resultDir"], img_file)
+        img_obj = resolve_image(img_path, is_dataset=False)
+        if img_obj:
+            st.image(img_obj, caption=f"Fig: {img_file}", use_container_width=True)
+        else:
+            st.error(f"Could not load {img_file}")
+else:
+    st.info("No GUI Output images found for this sequence.")
+
 
 st.markdown("#### Overall Summary")
-render_dynamic_gallery("summary_images")
+import pandas as pd
+all_csvs = []
+for seq_name in seq_names:
+    csv_path = os.path.join(version_dir, seq_name, "dashboard_summary.csv")
+    if os.path.exists(csv_path):
+        try:
+            df = pd.read_csv(csv_path)
+            df.insert(0, "Sequence", seq_name)
+            all_csvs.append(df)
+        except Exception as e:
+            st.warning(f"Could not read CSV for {seq_name}: {e}")
+
+if all_csvs:
+    master_df = pd.concat(all_csvs, ignore_index=True)
+    st.dataframe(master_df, use_container_width=True)
+else:
+    st.info("No dashboard_summary.csv files found in this version.")
